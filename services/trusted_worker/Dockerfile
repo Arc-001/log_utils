@@ -7,6 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY common ./common
 COPY services/trusted_worker/multiline.py .
+COPY services/trusted_worker/llm.py .
+COPY services/trusted_worker/templates_store.py .
 COPY services/trusted_worker/main.py .
 
 CMD ["python", "main.py"]

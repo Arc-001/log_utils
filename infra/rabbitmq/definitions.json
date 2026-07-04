@@ -1,0 +1,53 @@
+{
+  "exchanges": [
+    {
+      "name": "log.events",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    { "name": "raw.jobs.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "trusted.jobs.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "refined.jobs.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    {
+      "name": "raw.jobs",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "raw.jobs.dlq"
+      }
+    },
+    {
+      "name": "trusted.jobs",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "trusted.jobs.dlq"
+      }
+    },
+    {
+      "name": "refined.jobs",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "refined.jobs.dlq"
+      }
+    }
+  ],
+  "bindings": [
+    { "source": "log.events", "vhost": "/", "destination": "raw.jobs", "destination_type": "queue", "routing_key": "raw.jobs", "arguments": {} },
+    { "source": "log.events", "vhost": "/", "destination": "trusted.jobs", "destination_type": "queue", "routing_key": "trusted.jobs", "arguments": {} },
+    { "source": "log.events", "vhost": "/", "destination": "refined.jobs", "destination_type": "queue", "routing_key": "refined.jobs", "arguments": {} }
+  ]
+}

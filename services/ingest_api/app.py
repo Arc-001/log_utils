@@ -2,6 +2,7 @@ import datetime
 import threading
 import uuid
 
+import pika
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -22,10 +23,21 @@ class IngestRequest(BaseModel):
 def _publish(payload: dict) -> None:
     global _connection, _channel
     with _lock:
-        if _connection is None or _connection.is_closed:
-            _connection = mq.get_connection()
-            _channel = _connection.channel()
-        mq.publish_json(_channel, config.RAW_QUEUE, payload)
+        # Idle connections get reset by the broker between requests (missed
+        # heartbeats), so reconnect once on failure rather than trusting
+        # is_closed, which only reflects state as of the last operation.
+        for attempt in range(2):
+            try:
+                if _connection is None or _connection.is_closed:
+                    _connection = mq.get_connection()
+                    _channel = _connection.channel()
+                mq.publish_json(_channel, config.RAW_QUEUE, payload)
+                return
+            except (pika.exceptions.AMQPConnectionError, pika.exceptions.StreamLostError):
+                _connection = None
+                _channel = None
+                if attempt == 1:
+                    raise
 
 
 @app.post("/ingest")

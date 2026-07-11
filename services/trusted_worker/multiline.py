@@ -15,11 +15,18 @@ def starts_new_entry(line: str) -> bool:
     return any(p.match(line) for p in _ENTRY_START_PATTERNS)
 
 
-def join_multiline(lines: list[str]) -> list[str]:
-    entries: list[str] = []
-    for line in lines:
+def join_multiline(records: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    """records: (line_no, line) pairs in order.
+
+    Returns (anchor_line_no, joined_text) pairs, one per logical entry.
+    anchor_line_no is the line_no of the first raw line in the entry - a
+    stable identity for the entry, since join_multiline is deterministic
+    for the same input (used downstream to dedupe replayed lines).
+    """
+    entries: list[list] = []
+    for line_no, line in records:
         if not entries or starts_new_entry(line):
-            entries.append(line)
+            entries.append([line_no, line])
         else:
-            entries[-1] += "\n" + line
-    return entries
+            entries[-1][1] += "\n" + line
+    return [(anchor, text) for anchor, text in entries]

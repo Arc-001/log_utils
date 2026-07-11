@@ -16,6 +16,10 @@ CREATE TABLE logs (
     ts           TIMESTAMPTZ,
     raw_message  TEXT NOT NULL,
     fields       JSONB NOT NULL DEFAULT '{}',
+    -- sha256(object_key:anchor_line_no) from trusted-worker; identifies the
+    -- physical raw line regardless of which template matched it, so
+    -- replaying a raw object is idempotent (ON CONFLICT DO NOTHING).
+    line_hash    TEXT UNIQUE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -59,13 +59,17 @@ s3 = get_s3_client()
 template_miner = build_template_miner()
 
 
-def fetch_lines(object_key: str) -> tuple[list[str], str | None]:
+def fetch_lines(object_key: str) -> tuple[list[tuple[int, str]], str | None]:
     obj = s3.get_object(Bucket=config.MINIO_BUCKET, Key=object_key)
     body = gzip.decompress(obj["Body"].read())
     records = [json.loads(line) for line in body.decode("utf-8").splitlines() if line]
     records.sort(key=lambda r: r["line_no"])
     received_at = records[0]["received_at"] if records else None
-    return [r["line"] for r in records], received_at
+    return [(r["line_no"], r["line"]) for r in records], received_at
+
+
+def make_line_hash(object_key: str, anchor_line_no: int) -> str:
+    return hashlib.sha256(f"{object_key}:{anchor_line_no}".encode("utf-8")).hexdigest()
 
 
 def make_signature(source: str, template_mined: str) -> str:
@@ -110,7 +114,9 @@ def generate_and_store_template(signature: str, samples: list[str]) -> dict:
     return {"id": template_id, "regex": regex_str, "status": status, "fields_schema": fields_schema}
 
 
-def process_entry(entry: str, source: str, ts: str | None, channel) -> None:
+def process_entry(
+    entry: str, source: str, ts: str | None, object_key: str, anchor_line_no: int, channel
+) -> None:
     result = template_miner.add_log_message(entry)
     cluster_id = result.get("cluster_id")
 
@@ -162,6 +168,7 @@ def process_entry(entry: str, source: str, ts: str | None, channel) -> None:
             "ts": ts,
             "raw_message": entry,
             "fields": match.groupdict(),
+            "line_hash": make_line_hash(object_key, anchor_line_no),
         },
     )
 
@@ -170,16 +177,16 @@ def handle_message(payload: dict, channel) -> None:
     object_key = payload["object_key"]
     source = payload["source"]
 
-    raw_lines, received_at = fetch_lines(object_key)
-    entries = join_multiline(raw_lines)
+    raw_records, received_at = fetch_lines(object_key)
+    entries = join_multiline(raw_records)
 
-    for entry in entries:
-        process_entry(entry, source, received_at, channel)
+    for anchor_line_no, entry in entries:
+        process_entry(entry, source, received_at, object_key, anchor_line_no, channel)
 
     logger.info(
         "processed %s: %d raw lines -> %d logical entries, %d total clusters so far",
         object_key,
-        len(raw_lines),
+        len(raw_records),
         len(entries),
         len(template_miner.drain.clusters),
     )

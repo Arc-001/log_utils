@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def get_connection() -> pika.BlockingConnection:
     credentials = pika.PlainCredentials(config.RABBITMQ_USER, config.RABBITMQ_PASS)
     params = pika.ConnectionParameters(
-        host=config.RABBITMQ_HOST, credentials=credentials, heartbeat=30
+        host=config.RABBITMQ_HOST, credentials=credentials, heartbeat=600
     )
     return pika.BlockingConnection(params)
 

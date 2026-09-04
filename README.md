@@ -717,27 +717,6 @@ as its context. Commits follow [Conventional Commits](https://www.conventionalco
 
 ---
 
-## Status
-
-All seven phases of [`plan.md`](plan.md) are implemented and verified against real
-log data — journald, kernel, the systemd boot sequence, and a synthetic app log.
-
-| Phase | Scope | State |
-| --- | --- | --- |
-| 1 | Infra skeleton: Postgres, RabbitMQ, MinIO, schema, queue definitions | Done |
-| 2 | Raw ingestion path end to end | Done |
-| 3 | Drain3 clustering and tuning | Done |
-| 4 | LLM template generation and validation | Done |
-| 5 | Refined loader | Done |
-| 6 | Replay and review promotion workflow | Done |
-| 7 | Continuous tail shipper daemon | Done |
-
-**Out of scope, deliberately:** search API or UI (query via `psql`), multi-user
-support, auth, TLS, and automatic reprocessing when templates improve — replay is
-manual-trigger only.
-
----
-
 ## License
 
 No license file is present in this repository yet, so default copyright applies
